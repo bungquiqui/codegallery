@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AusPostcode Gallery</title>
+    <!-- Tailwind is still via CDN for simplicity, but React is now local -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Load local fonts from the /font directory using relative paths */
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-Light.woff2') format('woff2');
+        font-weight: 300;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-LightItalic.woff2') format('woff2');
+        font-weight: 300;
+        font-style: italic;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-Regular.woff2') format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-RegularItalic.woff2') format('woff2');
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-Medium.woff2') format('woff2');
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-MediumItalic.woff2') format('woff2');
+        font-weight: 500;
+        font-style: italic;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-Bold.woff2') format('woff2');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'APTypeProDisplay';
+        src: url('./font/APTypeProDisplay-BoldItalic.woff2') format('woff2');
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #dc1928;
+        font-family: 'APTypeProDisplay', system-ui, -apple-system, sans-serif;
+        color: #ffffff;
+      }
+
+      .digit-container {
+        display: inline-flex;
+        justify-content: center;
+        width: 0.6em;
+      }
+      
+      /* Simple smooth scaling for the image */
+      .bg-image {
+        transition: transform 10s ease-out, opacity 0.5s ease-in-out;
+      }
+      
+      .hover-scale:hover .bg-image {
+        transform: scale(1.05);
+      }
+    </style>
+</head>
+  <body>
+    <div id="root">
+      <div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #dc1928; color: #ffffff; font-family: sans-serif;">
+        Loading Gallery...
+      </div>
+    </div>
+    <!-- Vite handles the module loading -->
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
