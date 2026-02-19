@@ -7,6 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 const BASE_STEP_HEIGHT = 15; 
 const MAX_VIRTUAL_SCROLL_PX = 8_000_000;
 const MIN_VIRTUAL_CYCLES = 120;
+const SNAP_IMAGE_HOLD_THRESHOLD = 7;
 const PASSWORD_STORAGE_KEY = 'auspost_gallery_auth_v1';
 const SITE_PASSWORD =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SITE_PASSWORD) ||
@@ -238,7 +239,7 @@ const App: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(initialIndexRef.current);
   const [isLanded, setIsLanded] = useState(false);
   const [isAltColorMode, setIsAltColorMode] = useState(false);
-  const [isAltScrollMode, setIsAltScrollMode] = useState(false);
+  const [isAltScrollMode, setIsAltScrollMode] = useState(true);
   const [isImagesMode, setIsImagesMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -253,6 +254,7 @@ const App: React.FC = () => {
   const altScrollLockRef = useRef(false);
   const snapWheelGestureLockRef = useRef(false);
   const snapWheelGestureTimeoutRef = useRef<any>(null);
+  const snapImageHoldUntilRef = useRef(0);
 
   const LIST_LENGTH = POSTCODES.length;
   const LIST_PIXEL_HEIGHT = LIST_LENGTH * BASE_STEP_HEIGHT;
@@ -418,7 +420,7 @@ const App: React.FC = () => {
   );
 
   const scrollToDirectionalImage = useCallback(
-    (targetIndex: number, direction: 1 | -1) => {
+    (targetIndex: number, direction: 1 | -1, behavior: ScrollBehavior) => {
       if (!scrollRef.current || LIST_LENGTH === 0) return;
       const currentTop = scrollRef.current.scrollTop;
       const cycleStart = Math.floor(currentTop / LIST_PIXEL_HEIGHT) * LIST_PIXEL_HEIGHT;
@@ -431,25 +433,49 @@ const App: React.FC = () => {
         nextTop -= LIST_PIXEL_HEIGHT;
       }
 
-      const behavior: ScrollBehavior = isImagesMode ? 'auto' : 'smooth';
       scrollRef.current.scrollTo({ top: nextTop, behavior });
       setActiveIndex(targetIndex);
-      setIsLanded(isImagesMode);
     },
-    [isAltScrollMode, isImagesMode, LIST_LENGTH, LIST_PIXEL_HEIGHT]
+    [LIST_LENGTH, LIST_PIXEL_HEIGHT]
   );
 
   const stepToImage = useCallback(
     (direction: 1 | -1) => {
-      const nextImageIndex = findNextImageIndex(activeIndexRef.current, direction);
+      const currentIndex = activeIndexRef.current;
+      const nextImageIndex = findNextImageIndex(currentIndex, direction);
       if (nextImageIndex === null) return;
+
+      const distance =
+        direction > 0
+          ? nextImageIndex > currentIndex
+            ? nextImageIndex - currentIndex
+            : LIST_LENGTH - currentIndex + nextImageIndex
+          : nextImageIndex < currentIndex
+            ? currentIndex - nextImageIndex
+            : currentIndex + (LIST_LENGTH - nextImageIndex);
+      const keepImageShellInSnap =
+        isAltScrollMode &&
+        !isImagesMode &&
+        distance <= SNAP_IMAGE_HOLD_THRESHOLD;
+
       altScrollLockRef.current = true;
-      scrollToDirectionalImage(nextImageIndex, direction);
+      if (keepImageShellInSnap) {
+        snapImageHoldUntilRef.current = Date.now() + 260;
+        setIsLanded(true);
+        scrollToDirectionalImage(nextImageIndex, direction, 'auto');
+      } else {
+        setIsLanded(isImagesMode);
+        scrollToDirectionalImage(
+          nextImageIndex,
+          direction,
+          isImagesMode ? 'auto' : 'smooth'
+        );
+      }
       window.setTimeout(() => {
         altScrollLockRef.current = false;
-      }, isImagesMode ? 120 : 160);
+      }, keepImageShellInSnap ? 120 : isImagesMode ? 120 : 160);
     },
-    [findNextImageIndex, isImagesMode, scrollToDirectionalImage]
+    [LIST_LENGTH, findNextImageIndex, isAltScrollMode, isImagesMode, scrollToDirectionalImage]
   );
 
   const forwardWheelToMain = useCallback(
@@ -581,7 +607,11 @@ const App: React.FC = () => {
     if (index !== activeIndex) {
       setActiveIndex(index);
       if (!imageOnlyTracking) {
-        setIsLanded(false);
+        const shouldHoldImageShell =
+          isAltScrollMode && Date.now() < snapImageHoldUntilRef.current;
+        if (!shouldHoldImageShell) {
+          setIsLanded(false);
+        }
       }
     }
 
@@ -589,7 +619,10 @@ const App: React.FC = () => {
     if (stopTimeout.current) clearTimeout(stopTimeout.current);
     const stopDelay = isAltScrollMode ? 120 : 180;
     stopTimeout.current = setTimeout(() => {
-      if (isImagesMode) {
+      if (
+        isImagesMode ||
+        (isAltScrollMode && Date.now() < snapImageHoldUntilRef.current)
+      ) {
         setIsLanded(true);
         return;
       }
@@ -712,11 +745,25 @@ const App: React.FC = () => {
         <span
           role="button"
           tabIndex={0}
-          onClick={() => setIsAltScrollMode((v) => !v)}
+          onClick={() => setIsAltScrollMode(false)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              setIsAltScrollMode((v) => !v);
+              setIsAltScrollMode(false);
+            }
+          }}
+          className={`cursor-pointer select-none ${!isAltScrollMode ? 'opacity-100 underline' : 'opacity-70 hover:opacity-100'}`}
+        >
+          Scroll
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsAltScrollMode(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsAltScrollMode(true);
             }
           }}
           className={`cursor-pointer select-none ${isAltScrollMode ? 'opacity-100 underline' : 'opacity-70 hover:opacity-100'}`}
