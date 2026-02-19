@@ -8,8 +8,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   
   return {
-    // base: './' ensures assets are loaded relatively, required for GitHub Pages
-    base: './',
+    // GitHub Pages project site path for https://<user>.github.io/codegallery/
+    base: '/codegallery/',
     plugins: [react()],
     define: {
       // Expose both names for compatibility
